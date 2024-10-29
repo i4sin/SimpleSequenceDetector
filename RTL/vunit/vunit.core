@@ -1,0 +1,15 @@
+CAPI=2: 2
+
+name: Naad:TestUtils:Vunit
+description: Vunit Utilities for test benches
+
+filesets:
+  runner_files:
+    files:
+      - src/vunit.py
+    file_type: pythonSource
+
+targets:
+  default:
+    filesets:
+      - runner_files
