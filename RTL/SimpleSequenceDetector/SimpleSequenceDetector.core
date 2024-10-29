@@ -1,0 +1,38 @@
+CAPI=2: 2
+
+name: Yasin:VLSI:SimpleSequenceDetector
+description: Simple SimpleSequenceDetector
+
+filesets:
+  rtl_files:
+    files:
+      - src/SimpleSequenceDetector.sv
+    file_type: systemVerilogSource
+
+  tb_files:
+    logical_name: tb_lib
+    files:
+      - test/SimpleSequenceDetector_tb.sv
+      # - test/Word.sv: {is_include_file: true}
+
+    file_type: systemVerilogSource
+    depend:
+      - Naad:TestUtils:Vunit
+
+targets:
+  default: &default
+    filesets:
+      - rtl_files
+
+  synthesis:
+    <<: *default
+
+  test:
+    <<: *default
+    default_tool: vunit
+    tools:
+      vunit:
+        vunit_runner: vunit.py
+    filesets_append:
+      - tb_files
+    toplevel: DontCare
