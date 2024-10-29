@@ -1,5 +1,4 @@
 `timescale 10ns/1ns
-`PERIOD 20ns
 
 import vunit_pkg::*;
 
@@ -30,7 +29,7 @@ module SimpleAlu_tb();
     logic [31:0] output_X;
     logic        output_Z;
 
-    SimpleAlu uut(
+    SimpleAlu alu(
         .clk(clk),
         .resetn(resetn),
         .A(input_A),
@@ -81,34 +80,48 @@ module SimpleAlu_tb();
         return expexted_output_z_array;
     endfunction
 
-    function void check_output(logic [31:0] current_input_A,
-                                logic [31:0] current_input_B,
-                                logic [31:0] current_expected_output,
-                                logic current_expected_z);
-        assert (output_X == current_expected_output)
-            else $error("Operation wasn't done appropriately; output = %x, expected: %x", 
+    task drive_input(logic [31:0] current_input_A, logic [31:0] current_input_B, logic [2:0] current_input_OP);
+        input_A <= current_input_A;
+        input_B <= current_input_B;
+        input_OP <= current_input_OP;
+        @(posedge clk);
+    endtask
+
+    task check_output(logic [31:0] current_expected_output, logic current_expected_z);        
+        @(posedge clk);
+        assert (output_X == current_expected_output) begin
+            $display("A: %h, B: %h, OP: %b, X: %h, expected_X: %h, Z: %b, expected_Z: %b",
+                        input_A, input_B, input_OP, output_X, current_expected_output, output_Z, current_expected_z);
+        end else $error("Operation wasn't done appropriately; output = %x, expected: %x", 
                                                                 output_X, current_expected_output);
         assert ((output_X == 0 && output_Z) || (output_X != 0 && !output_Z))
             else $error("Z flag isn't assigned correctly! output_z = %b, current_expected_z = %b", output_Z, current_expected_z);
-    endfunction
+    endtask
 
     `TEST_SUITE begin
+        `TEST_CASE_SETUP begin
+            resetn <= 0;
+            repeat(6) @(posedge clk);
+            resetn <= 1;
+            repeat(6) @(posedge clk);
+        end
+        
         `TEST_CASE("test") begin
             input_a_array = generate_random_data();
             input_b_array = generate_random_data();
             op_array = generate_random_op();
 
             expected_output_array = calculate_expected_output(input_a_array, input_b_array, op_array);
-
             expexted_output_z_array = calculate_expected_z(expected_output_array);
 
             for (int i = 0; i < TOTAL_WORDS_COUNT; i++) begin
-                input_A = input_a_array.pop_front();
-                input_B = input_b_array.pop_front();
-                input_OP = op_array.pop_front();
-
-                check_output(input_A, input_B, expected_output_array.pop_front(), expexted_output_z_array.pop_front());
+                drive_input(input_a_array.pop_front(), input_b_array.pop_front(), op_array.pop_front());
+                check_output(expected_output_array.pop_front(), expexted_output_z_array.pop_front());
             end
+        end
+
+        `TEST_CASE_CLEANUP begin
+            $display("Making Cleanup....");
         end
     end
 endmodule

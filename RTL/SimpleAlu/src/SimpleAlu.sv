@@ -21,7 +21,7 @@ module SimpleAlu(
     end
 
     always_comb begin
-        output_d = 0;
+        output_d = output_q;
         case (OP)
             3'b000 : output_d = A + B;
             3'b001 : output_d = A - B;
@@ -30,6 +30,7 @@ module SimpleAlu(
             3'b100 : output_d = ~(A & B);
             3'b101 : output_d = A & B;
             3'b110 : output_d = A ~^ B;
+            default: output_d = 0;
         endcase
     end
 endmodule
