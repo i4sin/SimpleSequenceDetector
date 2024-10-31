@@ -31,19 +31,19 @@ module SimpleSequenceDetector(
             case (state_q)
                 StIdle : begin
                     detected = 0;
-                    state_d = (seq ? St1 : StIdle );
+                    state_d = (seq ? St1 : StIdle);
                 end
                 St1 : begin
                     detected = 0;
-                    state_d = (seq ? St1 : St10   );
+                    state_d = (seq ? St1 : St10);
                 end
                 St10 : begin
                     detected = 0;
-                    state_d = (seq ? St101 : StIdle );
+                    state_d = (seq ? St101 : StIdle);
                 end
                 St101 : begin
                     detected = 0;
-                    state_d = (seq ? St1011 : St10   );
+                    state_d = (seq ? St1011 : St10);
                 end
                 St1011 : begin
                     detected = !seq;
@@ -51,7 +51,7 @@ module SimpleSequenceDetector(
                 end
                 St10110 : begin
                     detected = 0;
-                    state_d = (seq ? St101 : StIdle );
+                    state_d = (seq ? St101 : StIdle);
                 end
                 default : begin
                     detected = 0;
