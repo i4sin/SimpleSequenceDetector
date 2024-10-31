@@ -4,7 +4,7 @@ module SimpleSequenceDetector(
 
     input seq,
     input valid,
-    output detected
+    output reg detected
 );
     typedef enum {
         StIdle,
@@ -13,9 +13,9 @@ module SimpleSequenceDetector(
         St101,
         St1011,
         St10110
-    } stete_e;
+    } state;
 
-    state_e state_d, state_q;
+    state state_d, state_q;
 
     always_ff @(posedge clk or negedge resetn) begin
         if (!resetn) begin
@@ -27,18 +27,37 @@ module SimpleSequenceDetector(
 
     always_comb begin
         state_d = state_q;
-        detected = 0;
-        case (state_q)
-            StIdle  : state_d = (seq ? St1    : StIdle );
-            St1     : state_d = (seq ? St1    : St10   );
-            St10    : state_d = (seq ? St101  : StIdle );
-            St101   : state_d = (seq ? St1011 : St10   );
-            St1011  : begin
-                state_d = (seq ? St1 : St10110);
-                detected = !seq;
-            end
-            St10110 : state_d = (seq ? St101  : StIdle );
-            default : state_d = StIdle;
-        endcase
+        if (valid) begin
+            case (state_q)
+                StIdle : begin
+                    detected = 0;
+                    state_d = (seq ? St1 : StIdle );
+                end
+                St1 : begin
+                    detected = 0;
+                    state_d = (seq ? St1 : St10   );
+                end
+                St10 : begin
+                    detected = 0;
+                    state_d = (seq ? St101 : StIdle );
+                end
+                St101 : begin
+                    detected = 0;
+                    state_d = (seq ? St1011 : St10   );
+                end
+                St1011 : begin
+                    detected = !seq;
+                    state_d = (seq ? St1 : St10110);
+                end
+                St10110 : begin
+                    detected = 0;
+                    state_d = (seq ? St101 : StIdle );
+                end
+                default : begin
+                    detected = 0;
+                    state_d = StIdle;
+                end
+            endcase
+        end else detected = 0;
     end
 endmodule
