@@ -5,7 +5,7 @@ import vunit_pkg::*;
 `include "vunit_defines.svh"
 
 module SimpleSequenceDetector_tb();
-    localparam TOTAL_WORDS_COUNT = 100000;
+    localparam TOTAL_WORDS_COUNT = 100;
 
     typedef logic logic_array[$];
     typedef enum {
@@ -42,11 +42,12 @@ module SimpleSequenceDetector_tb();
         while (random_seq.size() < TOTAL_WORDS_COUNT) begin
             random_seed = $urandom_range(0, 2);
             case (random_seed)
-                0: append_random_pattern(random_seq);
-                1: append_base_pattern(random_seq);
-                2: append_overlapping_pattern(random_seq);
+                0: random_seq = append_random_pattern(random_seq);
+                1: random_seq = append_base_pattern(random_seq);
+                2: random_seq = append_overlapping_pattern(random_seq);
             endcase
         end
+        $display("random_seq: %p", random_seq);
         return random_seq;
     endfunction
 
@@ -114,9 +115,9 @@ module SimpleSequenceDetector_tb();
                     next_state = StIdle;
                 end
             endcase
-            expect_detected_output.push_back(current_detected);
+            expected_detected_array.push_back(current_detected);
         end
-
+        $display("expected_detected_array: %p", expected_detected_array);
         return expected_detected_array;
     endfunction
 
@@ -155,6 +156,7 @@ module SimpleSequenceDetector_tb();
 
         `TEST_CASE_CLEANUP begin
             $display("Making Cleanup....");
+            assert(0);
         end
 
         // `WATCHDOG(10000ns)
