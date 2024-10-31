@@ -1,102 +1,82 @@
 `timescale 1ns/1ps
-`PERIOD 20ns
+// `PERIOD 20ns/1ps
 
 import vunit_pkg::*;
-
 `include "vunit_defines.svh"
 
 module SimpleSequenceDetector_tb();
     localparam TOTAL_WORDS_COUNT = 100000;
 
-    typedef logic [31:0] data_logic_array[$];
-    typedef logic [2:0]  op_logic_array  [$];
-    typedef logic z_array[$];
+    typedef logic logic_array[$];
 
-    data_logic_array input_a_array;
-    data_logic_array input_b_array;
-    data_logic_array expected_output_array;
-
-    op_logic_array op_array;
-
-    logic expexted_output_z_array[$];
+    logic_array seq_array;
+    logic_array expexted_detected_array;
 
     bit clk = 0;
     bit resetn = 0;
-    initial forever #(`PERIOD / 2) clk = ~clk;
+    initial forever #(10 / 2) clk = ~clk;
     
-    logic [31:0] input_A;
-    logic [31:0] input_B;
-    logic [2:0]  input_OP;
-    logic [31:0] output_X;
-    logic        output_Z;
+    logic input_seq;
+    logic input_valid;
+    logic output_detected;
 
-    SimpleSequenceDetector SequenceDetector(
+    SimpleSequenceDetector sequenceDetector(
         .clk(clk),
         .resetn(resetn),
-        .A(input_A),
-        .B(input_B),
-        .OP(input_OP),
-        .X(output_X),
-        .Z(output_Z)
+        .seq(input_seq),
+        .valid(input_valid),
+        .detected(output_detected)
     );
 
-    function data_logic_array generate_random_data();
-        logic [31:0] random_data[TOTAL_WORDS_COUNT];
-        foreach (random_data[i]) begin
-            random_data[i] = $urandom();
-        end
-        return random_data;
-    endfunction
-
-    function op_logic_array generate_random_op();
-        logic [2:0] random_op[TOTAL_WORDS_COUNT];
-        foreach (random_op[i]) begin
-            random_op[i] = $urandom_range(0,6);
-        end
-        return random_op;
-    endfunction
-
-    function data_logic_array calculate_expected_output(logic [31:0] input_a_array[$],
-                                                        logic [31:0] input_b_array[$],
-                                                        logic [2:0] op_array[$]);
-        logic [31:0] expected_outputs[$];
-        for (int i = 0; i < TOTAL_WORDS_COUNT; i++) begin
-            case (op_array[i])
-                3'b000 : expected_outputs.push_back(input_a_array[i] +  input_b_array[i]);
-                3'b001 : expected_outputs.push_back(input_a_array[i] -  input_b_array[i]);
-                3'b010 : expected_outputs.push_back(~(input_a_array[i] | input_b_array[i]));
-                3'b011 : expected_outputs.push_back(input_a_array[i] |  input_b_array[i]);
-                3'b100 : expected_outputs.push_back(~(input_a_array[i] & input_b_array[i]));
-                3'b101 : expected_outputs.push_back(input_a_array[i] &  input_b_array[i]);
-                3'b110 : expected_outputs.push_back(input_a_array[i] ~^ input_b_array[i]);
+    function logic_array generate_random_seq();
+        logic random_seed;
+        logic_array random_seq;
+        while (random_seq.size() < TOTAL_WORDS_COUNT) begin
+            random_seed = $urandom_range(0, 2);
+            case (random_seed)
+                0: append_random_pattern(random_seq);
+                1: append_base_pattern(random_seq);
+                2: append_overlapping_pattern(random_seq);
             endcase
         end
-        return expected_outputs;
+        return random_seq;
     endfunction
 
-    function z_array calculate_expected_z(logic [31:0] expected_output_array[$]);
-        foreach (expected_output_array[i]) begin
-            expexted_output_z_array[i] = (expected_output_array[i] == 0);
+    function logic_array append_random_pattern(logic_array seq_array);
+        for (int i = 0; i < 5; i++) begin
+            seq_array.push_back($urandom_range(0, 1));
         end
-        return expexted_output_z_array;
+        return seq_array;
     endfunction
 
-    task drive_input(logic [31:0] current_input_A, logic [31:0] current_input_B, logic [2:0] current_input_OP);
-        input_A <= current_input_A;
-        input_B <= current_input_B;
-        input_OP <= current_input_OP;
+    function logic_array append_base_pattern(logic_array seq_array);
+        seq_array.push_back(1);
+        seq_array.push_back(0);
+        seq_array.push_back(1);
+        seq_array.push_back(1);
+        seq_array.push_back(0);
+        return seq_array;
+    endfunction
+
+    function logic_array append_overlapping_pattern(logic_array seq_array);
+        seq_array.push_back(1);
+        seq_array.push_back(1);
+        seq_array.push_back(0);
+        return seq_array;
+    endfunction
+
+    task drive_input();
+        //
         @(posedge clk);
     endtask
 
-    task check_output(logic [31:0] current_expected_output, logic current_expected_z);        
+    task check_output();        
         @(posedge clk);
-        assert (output_X == current_expected_output) begin
-            $display("A: %h, B: %h, OP: %b, X: %h, expected_X: %h, Z: %b, expected_Z: %b",
-                        input_A, input_B, input_OP, output_X, current_expected_output, output_Z, current_expected_z);
-        end else $error("Operation wasn't done appropriately; output = %x, expected: %x", 
-                                                                output_X, current_expected_output);
-        assert ((output_X == 0 && output_Z) || (output_X != 0 && !output_Z))
-            else $error("Z flag isn't assigned correctly! output_z = %b, current_expected_z = %b", output_Z, current_expected_z);
+        // assert (output_X == current_expected_output) begin
+        //     $display("A: %h, B: %h, OP: %b, X: %h, expected_X: %h, Z: %b, expected_Z: %b",
+        //                 input_A, input_B, input_OP, output_X, current_expected_output, output_Z, current_expected_z);
+        // end else $error("Operation wasn't done appropriately; output = %x, expected: %x", 
+        //                                                         output_X, current_expected_output);
     endtask
 
     `TEST_SUITE begin
@@ -107,17 +87,13 @@ module SimpleSequenceDetector_tb();
             repeat(6) @(posedge clk);
         end
         
-        `TEST_CASE("test") begin
-            input_a_array = generate_random_data();
-            input_b_array = generate_random_data();
-            op_array = generate_random_op();
-
-            expected_output_array = calculate_expected_output(input_a_array, input_b_array, op_array);
-            expexted_output_z_array = calculate_expected_z(expected_output_array);
+        `TEST_CASE("random_test_without_pressure") begin
+            seq_array = generate_random_seq();
+            expexted_detected_array = calculate_expected_output();
 
             for (int i = 0; i < TOTAL_WORDS_COUNT; i++) begin
-                drive_input(input_a_array.pop_front(), input_b_array.pop_front(), op_array.pop_front());
-                check_output(expected_output_array.pop_front(), expexted_output_z_array.pop_front());
+                drive_input();
+                check_output();
             end
         end
 
