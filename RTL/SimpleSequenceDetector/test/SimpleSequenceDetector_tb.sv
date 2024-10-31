@@ -1,4 +1,5 @@
-`timescale 10ns/1ns
+`timescale 1ns/1ps
+`PERIOD 20ns
 
 import vunit_pkg::*;
 
@@ -21,7 +22,7 @@ module SimpleSequenceDetector_tb();
 
     bit clk = 0;
     bit resetn = 0;
-    initial forever #10 clk = ~clk;
+    initial forever #(`PERIOD / 2) clk = ~clk;
     
     logic [31:0] input_A;
     logic [31:0] input_B;
