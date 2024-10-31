@@ -17,7 +17,7 @@ filesets:
 
     file_type: systemVerilogSource
     depend:
-      - Naad:TestUtils:Vunit
+      - RTL:TestUtils:Vunit
 
 targets:
   default: &default

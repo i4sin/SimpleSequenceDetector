@@ -1,6 +1,6 @@
 CAPI=2: 2
 
-name: Naad:TestUtils:Vunit
+name: RTL:TestUtils:Vunit
 description: Vunit Utilities for test benches
 
 filesets:
