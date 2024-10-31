@@ -8,13 +8,21 @@ module SimpleSequenceDetector_tb();
     localparam TOTAL_WORDS_COUNT = 100000;
 
     typedef logic logic_array[$];
+    typedef enum {
+        StIdle,
+        St1,
+        St10,
+        St101,
+        St1011,
+        St10110
+    } state;
 
     logic_array seq_array;
-    logic_array expexted_detected_array;
+    logic_array expected_detected_array;
 
     bit clk = 0;
     bit resetn = 0;
-    initial forever #(10 / 2) clk = ~clk;
+    initial forever #20 clk = ~clk;
     
     logic input_seq;
     logic input_valid;
@@ -65,18 +73,66 @@ module SimpleSequenceDetector_tb();
         return seq_array;
     endfunction
 
-    task drive_input();
-        //
+    function automatic logic_array expect_detected_output(logic_array seq_array);
+        logic current_seq_item;
+        logic current_detected;
+
+        state current_state = StIdle;
+        state next_state = StIdle;
+        
+        logic_array expected_detected_array;
+        
+        while (seq_array.size()) begin
+            current_seq_item = seq_array.pop_front();
+            case (current_state)
+                StIdle : begin
+                    current_detected = 0;
+                    next_state = (current_seq_item ? St1 : StIdle);
+                end
+                St1 : begin
+                    current_detected = 0;
+                    next_state = (current_seq_item ? St1 : St10);
+                end
+                St10 : begin
+                    current_detected = 0;
+                    next_state = (current_seq_item ? St101 : StIdle);
+                end
+                St101 : begin
+                    current_detected = 0;
+                    next_state = (current_seq_item ? St1011 : St10);
+                end
+                St1011 : begin
+                    current_detected = !current_seq_item;
+                    next_state = (current_seq_item ? St1 : St10110);
+                end
+                St10110 : begin
+                    current_detected = 0;
+                    next_state = (current_seq_item ? St101 : StIdle);
+                end
+                default : begin
+                    current_detected = 0;
+                    next_state = StIdle;
+                end
+            endcase
+            expect_detected_output.push_back(current_detected);
+        end
+
+        return expected_detected_array;
+    endfunction
+
+    task drive_input(logic seq);
+        input_seq <= seq;
+        input_valid <= 1;
         @(posedge clk);
     endtask
 
-    task check_output();        
+    task check_output(logic current_expected_output);        
         @(posedge clk);
-        // assert (output_X == current_expected_output) begin
-        //     $display("A: %h, B: %h, OP: %b, X: %h, expected_X: %h, Z: %b, expected_Z: %b",
-        //                 input_A, input_B, input_OP, output_X, current_expected_output, output_Z, current_expected_z);
-        // end else $error("Operation wasn't done appropriately; output = %x, expected: %x", 
-        //                                                         output_X, current_expected_output);
+        assert (output_detected == current_expected_output) begin
+            $display("seq: %h, detected: %h, expected_output: %h",
+                        input_seq, output_detected, current_expected_output);
+        end else $error("Operation wasn't done appropriately; output = %x, expected: %x", 
+                                                                output_detected, current_expected_output);
     endtask
 
     `TEST_SUITE begin
@@ -87,18 +143,20 @@ module SimpleSequenceDetector_tb();
             repeat(6) @(posedge clk);
         end
         
-        `TEST_CASE("random_test_without_pressure") begin
+        `TEST_CASE("random_test_with_back_pressure") begin
             seq_array = generate_random_seq();
-            expexted_detected_array = calculate_expected_output();
+            expected_detected_array = expect_detected_output(seq_array);
 
             for (int i = 0; i < TOTAL_WORDS_COUNT; i++) begin
-                drive_input();
-                check_output();
+                drive_input(seq_array.pop_front());
+                check_output(expected_detected_array.pop_front());
             end
         end
 
         `TEST_CASE_CLEANUP begin
             $display("Making Cleanup....");
         end
+
+        // `WATCHDOG(10000ns)
     end
 endmodule
